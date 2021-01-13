@@ -49,7 +49,8 @@ RUN wget --quiet -O - https://deb.nodesource.com/gpgkey/nodesource.gpg.key |  ap
 # install some base packages
 RUN apt-get -qq update && \
     apt-get -qq install --yes --no-install-recommends \
-    less unzip wget curl git libgl1-mesa-glx libfontconfig1 libasound2 g++ && \
+    less unzip wget curl git libgl1-mesa-glx libfontconfig1 libasound2 \
+    build-essential g++ && \
     apt-get -qq purge && \
     apt-get -qq clean && \
     rm -rf /var/lib/apt/lists/*
