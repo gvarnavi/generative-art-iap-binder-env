@@ -1,15 +1,16 @@
-# Pull wolfram engine 12.2 as base and follow Dockerfile based on:
+# Dockerfile based on:
 # https://github.com/jupyterhub/repo2docker/tree/2f1914d8d66395e151c82453290f51d8c0894bf4
-FROM scratch
-COPY --from=wolframresearch/wolframengine:12.2.0 / /
+FROM ubuntu:18.04
 
 # ---- SETUP ----
-USER root
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set up locales properly
+# Set up certificates etc properly
 RUN apt-get -qq update && \
-    apt-get -qq install --yes --no-install-recommends locales wget gnupg2 > /dev/null && \
+    apt-get -qq install --yes --no-install-recommends locales \
+    wget gnupg2 ca-certificates > /dev/null && \
+    update-ca-certificates && \
     apt-get -qq purge && \
     apt-get -qq clean && \
     rm -rf /var/lib/apt/lists/*
@@ -49,8 +50,9 @@ RUN wget --quiet -O - https://deb.nodesource.com/gpgkey/nodesource.gpg.key |  ap
 # install some base packages
 RUN apt-get -qq update && \
     apt-get -qq install --yes --no-install-recommends \
-    less unzip wget curl git libgl1-mesa-glx libfontconfig1 libasound2 \
-    build-essential g++ && \
+    less unzip curl git \
+    xz-utils avahi-daemon netbase libgl1-mesa-glx libfontconfig1 libasound2 \
+    build-essential && \
     apt-get -qq purge && \
     apt-get -qq clean && \
     rm -rf /var/lib/apt/lists/*
@@ -64,8 +66,6 @@ ENV WOLFRAM_DIR ${APP_BASE}/wolfram
 ENV WOLFRAMSCRIPT_ENTITLEMENTID O-WSDS-9826-V6NRZS7WMDZMK
 ENV NB_PYTHON_PREFIX ${CONDA_DIR}/envs/notebook
 ENV KERNEL_PYTHON_PREFIX ${NB_PYTHON_PREFIX}
-RUN mkdir -p ${WOLFRAM_DIR} && \
-    chown -R ${NB_USER}:${NB_USER} ${WOLFRAM_DIR}
 
 ENV PATH ${NB_PYTHON_PREFIX}/bin:${CONDA_DIR}/bin:${PATH}
 
@@ -98,7 +98,19 @@ RUN TIMEFORMAT='time: %3R' \
    '
 
 # ---- WOLFRAM ENGINE ----
+# Currently download url points to 12.2.0 - consider switching back to docker images for reproducibility
+# https://hub.docker.com/r/wolframresearch/wolframengine
+USER root
+RUN mkdir -p ${WOLFRAM_DIR} && \
+    chown -R ${NB_USER}:${NB_USER} ${WOLFRAM_DIR} && \
+    wget https://account.wolfram.com/download/public/wolfram-engine/desktop/LINUX \
+    -O /tmp/Install-WolframEngine.sh && \
+    chmod +x /tmp/Install-WolframEngine.sh && \
+    /tmp/Install-WolframEngine.sh -- -auto -verbose && \
+    rm -f /tmp/Install-WolframEngine.sh
+
 # add wolframengine jupyter kernel
+USER ${NB_USER}
 RUN cd ${WOLFRAM_DIR} && \
     git clone https://github.com/okofish/WolframLanguageForJupyter.git && \
     cd WolframLanguageForJupyter && \
