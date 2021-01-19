@@ -9,6 +9,7 @@ dependencies:
   - seaborn
   - ffmpeg
   - scikit-image
+  - gc
   - pip
   - pip:
     - ipyturtle
